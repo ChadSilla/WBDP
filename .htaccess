@@ -1,0 +1,14 @@
+# ============================================================================
+# BIDA Portal — Apache Configuration
+# ============================================================================
+
+# Block access to sensitive files
+<FilesMatch "^\.env">
+    # Apache 2.4+
+    Require all denied
+</FilesMatch>
+
+# Block access to SQL files
+<FilesMatch "\.sql$">
+    Require all denied
+</FilesMatch>

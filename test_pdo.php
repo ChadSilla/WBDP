@@ -1,0 +1,1 @@
+<?php require_once 'c:\xampp\htdocs\WBDP\PHP\classes\Database.php'; $db = \App\Classes\Database::getInstance(); $db->query('UPDATE carousel_slides SET expiration_date=:exp WHERE id=3', [':exp' => '2024-12-31 23:59:59']); var_dump($db->query('SELECT expiration_date FROM carousel_slides WHERE id=3')->fetch());

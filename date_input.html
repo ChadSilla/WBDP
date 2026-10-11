@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Date of Birth Input</title>
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box; /* Fix #2: prevents padding from overflowing width */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .input-group label {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a362a;
+        }
+
+        .text-input {
+            padding: 12px 16px;
+            font-size: 18px;
+            color: #55758a;
+            border: 2px solid #2e7a57;
+            border-radius: 8px;
+            outline: none;
+            width: 250px;
+            letter-spacing: 2px;
+            background-color: white;
+            box-shadow: 0 0 0 4px #e6efe9;
+            cursor: text;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .text-input::placeholder {
+            color: #8fa7b8;
+            letter-spacing: 2px;
+        }
+
+        /* Fix #5: validation states */
+        .text-input.invalid {
+            border-color: #c0392b;
+            box-shadow: 0 0 0 4px #fde9e7;
+            color: #c0392b;
+        }
+
+        .text-input.valid {
+            border-color: #2e7a57;
+            box-shadow: 0 0 0 4px #e6efe9;
+            color: #2e7a57;
+        }
+
+        .error-msg {
+            font-size: 12px;
+            color: #c0392b;
+            min-height: 16px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="input-group">
+        <label for="dob-text">Date of Birth</label> <!-- Fix #3: label now matches input id -->
+        <input type="text" id="dob-text" class="text-input" placeholder="MM / DD / YYYY"
+               maxlength="14" autocomplete="off" inputmode="numeric">
+        <span class="error-msg" id="dob-error"></span>
+    </div>
+
+    <script>
+        const textInput = document.getElementById('dob-text');
+        const errorMsg  = document.getElementById('dob-error');
+
+        // Returns only the digit characters from the formatted string
+        function digitsOnly(str) {
+            return str.replace(/\D/g, '');
+        }
+
+        // Builds MM / DD / YYYY string from up to 8 raw digits
+        function formatDate(digits) {
+            let out = '';
+            if (digits.length > 0) out = digits.substring(0, 2);
+            if (digits.length > 2) out += ' / ' + digits.substring(2, 4);
+            if (digits.length > 4) out += ' / ' + digits.substring(4, 8);
+            return out;
+        }
+
+        // Basic range validation — Fix #5
+        function validateDate(digits) {
+            if (digits.length < 8) return null; // incomplete — no error yet
+            const mm   = parseInt(digits.substring(0, 2), 10);
+            const dd   = parseInt(digits.substring(2, 4), 10);
+            const yyyy = parseInt(digits.substring(4, 8), 10);
+
+            if (mm < 1 || mm > 12)               return 'Month must be 01 – 12.';
+            if (dd < 1 || dd > 31)               return 'Day must be 01 – 31.';
+
+            // Days-in-month check
+            const daysInMonth = new Date(yyyy, mm, 0).getDate();
+            if (dd > daysInMonth)                return `${mm}/${yyyy} only has ${daysInMonth} days.`;
+            if (yyyy < 1900 || yyyy > new Date().getFullYear())
+                                                  return `Year must be 1900 – ${new Date().getFullYear()}.`;
+            return null; // valid
+        }
+
+        textInput.addEventListener('keydown', (e) => {
+            // Fix #1 & #4: track cursor before input fires so we can restore it cleanly
+            textInput._selStart = textInput.selectionStart;
+            textInput._selEnd   = textInput.selectionEnd;
+        });
+
+        textInput.addEventListener('input', (e) => {
+            const raw       = e.target.value;
+            let digits      = digitsOnly(raw);
+            if (digits.length > 8) digits = digits.slice(0, 8);
+
+            // Fix #4: remember where cursor was (in digit-space) before reformatting
+            const cursorPos = textInput._selStart ?? raw.length;
+            // Count how many digits were before the old cursor position
+            const digitsBeforeCursor = digitsOnly(raw.substring(0, cursorPos)).length;
+
+            const formatted = formatDate(digits);
+            e.target.value  = formatted;
+
+            // Fix #4: restore cursor to the equivalent position after formatting
+            // Walk through formatted string and count digits until we match digitsBeforeCursor
+            let digitCount = 0;
+            let newCursor  = formatted.length;
+            for (let i = 0; i < formatted.length; i++) {
+                if (/\d/.test(formatted[i])) digitCount++;
+                if (digitCount === digitsBeforeCursor) {
+                    newCursor = i + 1;
+                    break;
+                }
+            }
+            // If we are right before a separator, push cursor past it
+            if (formatted[newCursor] === ' ') newCursor += 3;
+            textInput.setSelectionRange(newCursor, newCursor);
+
+            // Fix #5: validate and show error
+            const error = validateDate(digits);
+            if (error) {
+                textInput.classList.add('invalid');
+                textInput.classList.remove('valid');
+                errorMsg.textContent = error;
+            } else if (digits.length === 8) {
+                textInput.classList.add('valid');
+                textInput.classList.remove('invalid');
+                errorMsg.textContent = '';
+            } else {
+                textInput.classList.remove('invalid', 'valid');
+                errorMsg.textContent = '';
+            }
+        });
+    </script>
+</body>
+</html>
